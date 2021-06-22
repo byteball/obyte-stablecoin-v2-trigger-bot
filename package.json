@@ -1,0 +1,19 @@
+{
+  "name": "obyte-stablecoin-v2-trigger-bot",
+  "version": "0.0.1",
+  "description": "Obyte Stablecoin V2 trigger bot",
+  "main": "start.js",
+  "author": "Natalie Seltzer",
+  "license": "MIT",
+  "dependencies": {
+    "ocore": "git+https://github.com/byteball/ocore.git",
+    "headless-obyte": "git+https://github.com/byteball/headless-obyte.git",
+    "aabot": "git+https://github.com/byteball/aabot.git"
+  },
+  "resolutions": {
+    "level-rocksdb": "^4.0.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
