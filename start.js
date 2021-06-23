@@ -15,7 +15,6 @@ let operator_address = null;
 let paired_bots = [];
 let oracles = {};
 let curve_aas = {};
-let process_running = false;
 
 // ** add new Curve AA ** //
 async function addNewCurveAA (curve_aa) {
@@ -40,7 +39,7 @@ async function addNewCurveAA (curve_aa) {
 	await aa_state.followAA(de_aa);  
 	/// ??? follow vars.governance_aa ??? ///
 	//** add AAs Data Feeds to Oracles object ** //
-	await utils.addOracleDataFeed(oracles, params)
+	await utils.addOracleDataFeed(oracles, params, curve_aa)
 	return true;
 }
 
@@ -85,47 +84,47 @@ eventBus.once('headless_wallet_ready', async () => {
 		}		
 	}
 
-	// ** check for new AAs ** //
-	for (let base_aa of conf.base_aas) {
-		eventBus.on("aa_definition_applied-" + base_aa, async (address, definition) => {
-			let curve_aa = definition[1].params.curve_aa;
-			if (!curve_aas[curve_aa])  await addNewCurveAA(curve_aa);
-		});
-	}
-
 	eventBus.on('data_feeds_updated', estimateAndTrigger);
 
 	let interval = 60 * 10 //  set interval, e.g. to 10 minutes
 	if (conf.interval) interval = conf.interval
-	setInterval( () => estimateAndTrigger(), interval * 1000);
+	///setInterval( () => estimateAndTrigger(), interval * 1000);
+	setInterval( () => checkDataFeeds(), interval * 1000);
 })
 
-// ** estiamte and trigger ** //
-async function estimateAndTrigger() {
-	if (process_running) return;
-	process_running = true
+// ** check Data Feeds ** //
+async function checkDataFeeds() {
 	console.error('------------>>>>')
-	/*
 	// ** check for new AAs ** //
-	for (let base_aa of conf.base_aas) {
-		eventBus.on("aa_definition_applied-" + base_aa, async (address, definition) => {
-			let curve_aa = definition[1].params.curve_aa;
-			if (!curve_aas[curve_aa])  await addNewCurveAA(curve_aa);
-		});
+	const curve_aas_array = await dag.getAAsByBaseAAs(conf.base_aas);  // get curve AAs
+	for await (let aa of curve_aas_array) {
+		if (!curve_aas[aa.address]) await addNewCurveAA(aa.address)
 	}
-	*/
 	// ** update data feeds ** //
+	let updated_data_feed = false
 	let oracles_array = Object.keys(oracles);
 	for await (let oracle of oracles_array) {
 		let data_feeds_array = Object.keys(oracles[oracle]);
 		for await (let data_feed of data_feeds_array) {
 			if (conf.bLight) {
 				let updated = await light_data_feeds.updateDataFeed(oracle, data_feed, true);
-				if (updated) console.error('INFO: Data feed: ',  data_feed, ' from Oracle: ', oracle, ' updated.' )
+				if (updated) {
+					console.error('INFO: updated Data Feed: ',  data_feed, ' from Oracle: ', oracle)
+					updated_data_feed = true 
+					/// ??? it could be better to call the estimateAndTrigger function 
+					/// here for AAs affected by the change in the Data Feed
+					/// rather than estimating all AAs
+				}
 			}
 		}
 	}
+	if (updated_data_feed) eventBus.emit('data_feeds_updated');
+	else console.error('INFO: no change in Data Feeds') 
+}
 
+// ** estiamte and trigger ** //
+async function estimateAndTrigger() {
+	console.error('estimate and trigger function')
 	const unlock = await aa_state.lock();
 	// ** get upcomming state balances and state vars for all aas ** //
 	let upcomingBalances = await aa_state.getUpcomingBalances();
@@ -140,8 +139,7 @@ async function estimateAndTrigger() {
 		// ** estimate DE response ** //
 		let responses = await aa_composer.estimatePrimaryAATrigger(objUnit, de_aa, 
 			upcomingStateVars, upcomingBalances);
-		console.log(`--- estimated responses to simulated DE AA request`, 
-			JSON.stringify(responses, null, 2));
+		// ** process estimated response ** //
 		if (responses[0].bounced) console.error('INFO: DE would bounce: ', responses[0].response.error)
 		else if (responses[0].response && responses[0].response.responseVars && responses[0].response.responseVars.message) {
 			let response = responses[0].response.responseVars.message;
@@ -153,9 +151,10 @@ async function estimateAndTrigger() {
 			}
 			else console.error('INFO: ', response, ' DE: ', de_aa, ' for Curve AA: ', curve_aa)
 		}
+		else console.error(`--- estimated responses to simulated DE AA request`, 
+			JSON.stringify(responses, null, 2));
 	}
 	unlock();
-	process_running = false
 }
 
 process.on('unhandledRejection', up => {

@@ -59,17 +59,34 @@ function respond (user_address, text, operator_address) {
 async function addDataFeed (oracles, oracle, feed_name) {
 	if (!oracles[oracle]) {
 		oracles[oracle] = {}
-		oracles[oracle][feed_name] = {oracle: oracle, feed_name: feed_name} 
+		oracles[oracle][feed_name] = { oracle: oracle, feed_name: feed_name }
+			/// { oracle: oracle, feed_name: feed_name, curve_aas: [curve_aa] } 
 	}
 	else if (!oracles[oracle][feed_name]) oracles[oracle][feed_name] = 
-		{oracle: oracle, feed_name: feed_name}
+		{ oracle: oracle, feed_name: feed_name }
+		///{ oracle: oracle, feed_name: feed_name, curve_aas: [curve_aa] }
+	/*	
+	else {
+		let new_aa = true
+		for ( let aa of oracles[oracle][feed_name].curve_aas ) {
+			if ( aa === curve_aa) {
+				new_aa = false
+				break;
+			}
+		}
+		if (new_aa) oracles[oracle][feed_name].curve_aas.push(curve_aa)
+	}
+	*/
 }
 
 // ** add Oracle Data Feed to Oracles object ** //
-async function addOracleDataFeed (oracles, params) {
-	if (params.oracle1 && params.feed_name1) await addDataFeed(oracles, params.oracle1, params.feed_name1)
-	if (params.oracle2 && params.feed_name2) await addDataFeed(oracles, params.oracle2, params.feed_name2)
-	if (params.oracle3 && params.feed_name3) await addDataFeed(oracles, params.oracle3, params.feed_name3)
+async function addOracleDataFeed (oracles, params, curve_aa) {
+	if (params.oracle1 && params.feed_name1) await addDataFeed(oracles, params.oracle1, 
+		params.feed_name1, curve_aa)
+	if (params.oracle2 && params.feed_name2) await addDataFeed(oracles, params.oracle2, 
+		params.feed_name2, curve_aa)
+	if (params.oracle3 && params.feed_name3) await addDataFeed(oracles, params.oracle3, 
+		params.feed_name3, curve_aa)
 }
 
 // ** constructDummyObject ** //
