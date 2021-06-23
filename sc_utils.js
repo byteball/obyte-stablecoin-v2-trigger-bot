@@ -2,18 +2,11 @@
 const device = require('ocore/device.js');
 const conf = require('ocore/conf');
 
-// ** calculate pct diff ** //
-async function calculateDifferenceAsPct (old_value, new_value) {
-	let average = (old_value + new_value) / 2
-	let diff = Math.abs(old_value - new_value)	
-	let diff_pct = (diff / average) * 100
-	return diff_pct;
-}
-
 // ** send message to all paired bots ** //
 async function sendMessage (message, paired_bots) {
 	console.error(message);
 	for (let user_address of paired_bots) {
+		console.error('paired bot address: ', user_address)
 		device.sendMessageToDevice(user_address, 'text', message);
 	}
 	return
@@ -23,9 +16,6 @@ async function sendMessage (message, paired_bots) {
 function paired (user_address) {
 	device.sendMessageToDevice(user_address, 'text', "Welcome to Obyte Stablecoin V2 bot!");
 	device.sendMessageToDevice(user_address, 'text', "Type `operator` to get operator address ");
-	// ** check config ** //
-	if (!conf.base_aas) device.sendMessageToDevice(user_address, 'text', 
-		"Error: missing list of base AAs from the config.");
 }
 
 // ** respond to user's message ** //
@@ -58,14 +48,47 @@ function respond (user_address, text, operator_address) {
 		}
 
 		device.sendMessageToDevice( user_address, 'text', 
-			"interval: " + conf.interval + " seconds");
+			"interval: " + conf.interval + " seconds" );
 	}
 	else 
 		device.sendMessageToDevice(user_address, 'text', 
 			"Unknown command.  Type `operator` to see operator address or `params` to see list of bot parameters." );
 }
 
-exports.sendMessage = sendMessage;
+// ** add Data Feed to Oracle object ** //
+async function addDataFeed (oracles, oracle, feed_name) {
+	if (!oracles[oracle]) {
+		oracles[oracle] = {}
+		oracles[oracle][feed_name] = {oracle: oracle, feed_name: feed_name} 
+	}
+	else if (!oracles[oracle][feed_name]) oracles[oracle][feed_name] = 
+		{oracle: oracle, feed_name: feed_name}
+}
+
+// ** add Oracle Data Feed to Oracles object ** //
+async function addOracleDataFeed (oracles, params) {
+	if (params.oracle1 && params.feed_name1) await addDataFeed(oracles, params.oracle1, params.feed_name1)
+	if (params.oracle2 && params.feed_name2) await addDataFeed(oracles, params.oracle2, params.feed_name2)
+	if (params.oracle3 && params.feed_name3) await addDataFeed(oracles, params.oracle3, params.feed_name3)
+}
+
+// ** constructDummyObject ** //
+async function constructDummyObject (operator, de_aa) {
+	let objUnit = {
+		unit: 'dummy_trigger_unit',
+		authors: [{ address: operator }],
+		messages: [
+			{	app: 'payment',
+				payload: { outputs: [{ address: de_aa, amount: 1e4 }] } 	},
+			{	app: 'data',
+				payload: { act: 1 } 	}
+		]
+	}
+	return objUnit;
+}
+
 exports.paired = paired;
+exports.sendMessage = sendMessage;
 exports.respond = respond;
-exports.calculateDifferenceAsPct = calculateDifferenceAsPct;
+exports.addOracleDataFeed = addOracleDataFeed;
+exports.constructDummyObject = constructDummyObject;

@@ -16,7 +16,7 @@ exports.control_addresses = [''];  // if required, add to local conf.json file
 exports.base_aas = ['3DGWRKKWWSC6SV4ZQDWEHYFRYB4TGPKX', 'CD5DNSVS6ENG5UYILRPJPHAB3YXKA63W']; 
 exports.factory_aas = ['CX56T625MQDCRCQTJGYZYYWUAMCEZT2Q','YSVSAICPH5XOZPZL5UVH56MVHQKMXZCM'];
 exports.exclude_curve_aas = ['PU5YFREC4OBEYADLOHMBEEA4CI2Z5AKA'];
-exports.interval = 60 * 5 ; // 60 seconds
+exports.interval = 60 * 10; // 60 seconds * 10 = 10 minutes
 //
 // do not change
 exports.bSingleAddress = true;
