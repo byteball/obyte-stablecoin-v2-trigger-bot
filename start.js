@@ -21,7 +21,7 @@ let curve_aas_to_estimate = [];
 async function addNewCurveAA (curve_aa) {
 	// ** check if the Curve AA is in the list to be excluded ** //
 	if (conf.exclude_curve_aas) {
-		for await ( let exclude_aa of conf.exclude_curve_aas ) {
+		for ( let exclude_aa of conf.exclude_curve_aas ) {
 			if ( curve_aa === exclude_aa ) return false;
 		}
 	}
@@ -47,7 +47,7 @@ async function addNewCurveAA (curve_aa) {
 // ** add new Curve AAs ** //
 async function addNewCurveAAs () {
 	const curve_aas_array = await dag.getAAsByBaseAAs(conf.base_aas);  // get curve AAs
-	for await (let aa of curve_aas_array) {
+	for (let aa of curve_aas_array) {
 		if (!curve_aas[aa.address]) await addNewCurveAA(aa.address)
 	}
 }
@@ -77,10 +77,10 @@ eventBus.once('headless_wallet_ready', async () => {
 	// ** get all Curve AAs and start following them and all associated AAs ** //
 	await addNewCurveAAs();
 	// ** get all stable AAs and start following them ** //
-	for await (let factory_aa of conf.factory_aas) {
+	for (let factory_aa of conf.factory_aas) {
 		let factory_aa_vars = await dag.readAAStateVars(factory_aa, "stable_aa_");
 		let stable_aas = Object.keys(factory_aa_vars);
-		for await (let stable_aa of stable_aas) {
+		for (let stable_aa of stable_aas) {
 			stable_aa = stable_aa.replace('stable_aa_','');
 			await aa_state.followAA(stable_aa);  // follow Stable AA	
 		}		
@@ -100,7 +100,7 @@ async function checkDataFeeds() {
 	curve_aas_to_estimate = []
 	let affected_aas = []
 	let oracle_obj_keys = Object.keys(oracles);
-	for await (let oracle_obj_key of oracle_obj_keys) {
+	for (let oracle_obj_key of oracle_obj_keys) {
 		let oracle = oracles[oracle_obj_key].oracle
 		let data_feed = oracles[oracle_obj_key].feed_name
 		if (conf.bLight) {
@@ -126,7 +126,7 @@ async function estimateAndTrigger() {
 	let upcomingStateVars = await aa_state.getUpcomingStateVars();
 	
 	// ** for each Curve AA estimate and trigger DE ** //
-	for await (let curve_aa of curve_aas_to_estimate) {		
+	for (let curve_aa of curve_aas_to_estimate) {		
 		// ** estimate DE response ** //
 		let de_aa = curve_aas[curve_aa].de_aa
 		let objUnit = await utils.constructDummyObject( operator_address, de_aa)
