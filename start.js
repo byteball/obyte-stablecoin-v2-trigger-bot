@@ -59,7 +59,7 @@ eventBus.once('headless_wallet_ready', async () => {
 	}
 
 	// ** get all Curve AAs and start following them and all associated AAs ** //
-	const curve_aas_array = await dag.getAAsByBaseAAs(conf.base_aas);  // get curve AAs
+	const curve_aas_array = await dag.getAAsByBaseAAs(conf.base_aas);  // get Curve AAs
 	for (let aa of curve_aas_array) { await addNewCurveAA(aa.address) }
 
 	// ** get all stable AAs and start following them ** //
@@ -73,6 +73,7 @@ eventBus.once('headless_wallet_ready', async () => {
 
 	// ** emit listeners that will monitor for any new curve AAs ** //
 	for (let base_aa of conf.base_aas) {
+		await aa_state.followAA(base_aa); // start following Base AA 
 		eventBus.on("aa_definition_applied-" + base_aa, (new_curve_aa, definition, objUnit) => {
 			if (!curve_aas[new_curve_aa]) addNewCurveAA(new_curve_aa)
 		})
@@ -114,7 +115,7 @@ async function estimateAndTrigger() {
 	// ** get upcomming state balances and state vars for all aas ** //
 	let upcomingBalances = await aa_state.getUpcomingBalances();
 	let upcomingStateVars = await aa_state.getUpcomingStateVars();
-		
+
 	// ** for each Curve AA estimate and trigger DE ** //
 	for (let curve_aa of curve_aas_to_estimate) {		
 		// ** estimate DE response ** //
