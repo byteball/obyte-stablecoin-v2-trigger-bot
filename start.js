@@ -61,7 +61,7 @@ eventBus.once('headless_wallet_ready', async () => {
 	});
 	// ** respond to the message sent by a user to the bot ** //
 	eventBus.on('text', (from_address, text) => { 
-		bot_utils.respond(from_address, text, operator_address) 
+		utils.respond(from_address, text, operator_address) 
 	});
 	
 	await operator.start(); // start the built-in wallet
@@ -86,14 +86,12 @@ eventBus.once('headless_wallet_ready', async () => {
 		}		
 	}
 
-	eventBus.on('data_feeds_updated', estimateAndTrigger);
-
 	let interval = 60 * 10 //  set interval, e.g. to 10 minutes
 	if (conf.interval) interval = conf.interval
 	setInterval( () => checkDataFeeds(), interval * 1000);
 })
 
-// ** check Data Feeds ** //
+// ** check Data Feeds and call Estiamte & Trigger function if there is change ** //
 async function checkDataFeeds() {
 	console.error('------------>>>>')
 	// ** check for new AAs ** //
@@ -115,14 +113,13 @@ async function checkDataFeeds() {
 	}
 	if (affected_aas.length > 0) {
 		curve_aas_to_estimate = Array.from(new Set(affected_aas))
-		eventBus.emit('data_feeds_updated');
+		await estimateAndTrigger();
 	}
 	else console.error('INFO: no change in Data Feeds') 
 }
 
 // ** estiamte and trigger ** //
 async function estimateAndTrigger() {
-	console.error('estimate and trigger function, affected AAs: ', curve_aas_to_estimate )
 	const unlock = await aa_state.lock();
 	// ** get upcomming state balances and state vars for all aas ** //
 	let upcomingBalances = await aa_state.getUpcomingBalances();
@@ -142,7 +139,7 @@ async function estimateAndTrigger() {
 			if (response === "DE fixed the peg"  || response === "DE partially fixed the peg") {
 				await dag.sendAARequest(de_aa, {act: 1}); // trigger DE
 				console.error('*************************')
-				let message = 'INFO: DE Triggered for AA:' + curve_aa
+				let message = 'INFO: DE Triggered for AA: ' + curve_aa
 				await utils.sendMessage(message, paired_bots);
 				console.error('*************************')
 			}

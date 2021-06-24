@@ -1,7 +1,7 @@
 # Obyte Stablecoin V2 Trigger Bot
 
 Source code for O<sub>byte</sub> Stablecoin V2 Trigger Bot.  
-This bot estimates DE request regular intervals and tirggers DE when the peg could be fully or partially fixed.
+This bot monitors data feeds at regular intervals.  When change is detected the bot estimates response to DE request of affected Curve AAs and triggers DE if response indicates that DE will fix or partially fix the peg.
 
 ## Requirements
 
@@ -15,9 +15,9 @@ npm install
 ```
 node start.js
 ```
-Note the line that it prints on start-up, e.g. on testnet:
+Pair witht the bot to monitor bot activity:
 ```
-====== my pairing code: As3/oG+vVTlblKBX9QCpzdKrwr6Bc/34Meu6lbgqSHhx@obyte.org/bb-test#*
+====== pairing code: AgWulQt9nDbc9K0CafvWd5Vkw6XTy4MJk/KQvKUIB26h@obyte.org/bb#*
 ```
 Copy this pairing code to your O<sub>byte</sub> wallet: Chat tab, Add a new device, Accept invitation, paste the code, ready to chat and receive notification of DE being triggered.
 

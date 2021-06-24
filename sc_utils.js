@@ -6,7 +6,6 @@ const conf = require('ocore/conf');
 async function sendMessage (message, paired_bots) {
 	console.error(message);
 	for (let user_address of paired_bots) {
-		console.error('paired bot address: ', user_address)
 		device.sendMessageToDevice(user_address, 'text', message);
 	}
 	return
