@@ -20,11 +20,7 @@ let curve_aas_to_estimate = [];
 // ** add new Curve AA ** //
 async function addNewCurveAA (curve_aa) {
 	// ** check if the Curve AA is in the list to be excluded ** //
-	if (conf.exclude_curve_aas) {
-		for ( let exclude_aa of conf.exclude_curve_aas ) {
-			if ( curve_aa === exclude_aa ) return false;
-		}
-	}
+	if ( conf.exclude_curve_aas && conf.exclude_curve_aas.includes(curve_aa) ) return false;
 	// ** get params of the Curve AA ** //
 	let params = await dag.readAAParams(curve_aa);
 	if (!params) return false;
@@ -38,18 +34,9 @@ async function addNewCurveAA (curve_aa) {
 	await aa_state.followAA(curve_aa);  
 	await aa_state.followAA(fund_aa); 
 	await aa_state.followAA(de_aa);  
-	/// ??? follow vars.governance_aa ??? ///
 	//** add AAs Data Feeds to Oracles object ** //
 	await utils.addOracleDataFeed(oracles, params, curve_aa)
 	return true;
-}
-
-// ** add new Curve AAs ** //
-async function addNewCurveAAs () {
-	const curve_aas_array = await dag.getAAsByBaseAAs(conf.base_aas);  // get curve AAs
-	for (let aa of curve_aas_array) {
-		if (!curve_aas[aa.address]) await addNewCurveAA(aa.address)
-	}
 }
 
 // ** when headless wallet is ready, start network and set interval for data feeds check ** //
@@ -60,30 +47,35 @@ eventBus.once('headless_wallet_ready', async () => {
 		utils.paired(from_address) // send a greeting messages & check config params
 	});
 	// ** respond to the message sent by a user to the bot ** //
-	eventBus.on('text', (from_address, text) => { 
-		utils.respond(from_address, text, operator_address) 
-	});
+	eventBus.on('text', (from_address, text) => {utils.respond(from_address, text, operator_address)});
 	
 	await operator.start(); // start the built-in wallet
 	network.start();  	// start network
 	operator_address = operator.getAddress();  // get operator's address
-	console.error('************ START WATCHING ************')
-	console.error('*** Operator: ', operator_address, ' ***')
+	console.error('************ START WATCHING operator: ', operator_address)
 	if (!conf.base_aas || !conf.factory_aas) {  // check for mandatory config params
 		console.error('Error: missing mandatory parameters from the config. Process terminated.')
 		process.exit(1)
 	}
 
 	// ** get all Curve AAs and start following them and all associated AAs ** //
-	await addNewCurveAAs();
+	const curve_aas_array = await dag.getAAsByBaseAAs(conf.base_aas);  // get curve AAs
+	for (let aa of curve_aas_array) { await addNewCurveAA(aa.address) }
+
 	// ** get all stable AAs and start following them ** //
 	for (let factory_aa of conf.factory_aas) {
 		let factory_aa_vars = await dag.readAAStateVars(factory_aa, "stable_aa_");
 		let stable_aas = Object.keys(factory_aa_vars);
 		for (let stable_aa of stable_aas) {
-			stable_aa = stable_aa.replace('stable_aa_','');
-			await aa_state.followAA(stable_aa);  // follow Stable AA	
+			await aa_state.followAA( stable_aa.replace('stable_aa_','') );  // follow Stable AA	
 		}		
+	}
+
+	// ** emit listeners that will monitor for any new curve AAs ** //
+	for (let base_aa of conf.base_aas) {
+		eventBus.on("aa_definition_applied-" + base_aa, (new_curve_aa, definition, objUnit) => {
+			if (!curve_aas[new_curve_aa]) addNewCurveAA(new_curve_aa)
+		})
 	}
 
 	let interval = 60 * 10 //  set interval, e.g. to 10 minutes
@@ -94,13 +86,11 @@ eventBus.once('headless_wallet_ready', async () => {
 // ** check Data Feeds and call Estiamte & Trigger function if there is change ** //
 async function checkDataFeeds() {
 	console.error('------------>>>>')
-	// ** check for new AAs ** //
-	await addNewCurveAAs();
 	// ** update data feeds ** //
 	curve_aas_to_estimate = []
 	let affected_aas = []
 	let oracle_obj_keys = Object.keys(oracles);
-	for (let oracle_obj_key of oracle_obj_keys) {
+	for await (let oracle_obj_key of oracle_obj_keys) {
 		let oracle = oracles[oracle_obj_key].oracle
 		let data_feed = oracles[oracle_obj_key].feed_name
 		if (conf.bLight) {
@@ -112,8 +102,8 @@ async function checkDataFeeds() {
 		}
 	}
 	if (affected_aas.length > 0) {
-		curve_aas_to_estimate = Array.from(new Set(affected_aas))
-		await estimateAndTrigger();
+		curve_aas_to_estimate = Array.from(new Set(affected_aas))  // remove duplicates
+		await estimateAndTrigger();  // estimate and trigger
 	}
 	else console.error('INFO: no change in Data Feeds') 
 }
@@ -124,7 +114,7 @@ async function estimateAndTrigger() {
 	// ** get upcomming state balances and state vars for all aas ** //
 	let upcomingBalances = await aa_state.getUpcomingBalances();
 	let upcomingStateVars = await aa_state.getUpcomingStateVars();
-	
+		
 	// ** for each Curve AA estimate and trigger DE ** //
 	for (let curve_aa of curve_aas_to_estimate) {		
 		// ** estimate DE response ** //
