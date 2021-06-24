@@ -20,24 +20,21 @@ function paired (user_address) {
 
 // ** respond to user's message ** //
 function respond (user_address, text, operator_address) {
-	//analyze the text and respond
-	text = text.trim();
+	text = text.trim();  //analyze the text and respond
 	// user send operator command
-	if ( text.match(/^operator/) )
+	if ( text.match(/^operator/) )  
 		device.sendMessageToDevice(user_address, 'text', "Operator: " + operator_address);
-	else if ( text.match(/^params/) ) {
+	else if ( text.match(/^params/) ) {   // user send params command
 		let base_aas = conf.base_aas, base_aas_list = "base_aas: "
 		for (let base_aa of base_aas) {
 			base_aas_list += base_aa + ' '
 		}
 		device.sendMessageToDevice( user_address, 'text', base_aas_list );
-		
 		let factory_aas = conf.factory_aas, factory_aas_list = "factory_aas: "
 		for (let factory_aa of factory_aas) {
 			factory_aas_list += factory_aa + ' '
 		}
 		device.sendMessageToDevice( user_address, 'text', factory_aas_list );
-
 		if (conf.exclude_curve_aas) {
 			let exclude_curve_aas = conf.exclude_curve_aas
 			let exclude_curve_aas_list = "exclude_curve_as: "
@@ -46,7 +43,6 @@ function respond (user_address, text, operator_address) {
 			}
 			device.sendMessageToDevice( user_address, 'text', exclude_curve_aas_list );
 		}
-
 		device.sendMessageToDevice( user_address, 'text', 
 			"interval: " + conf.interval + " seconds" );
 	}
@@ -56,27 +52,16 @@ function respond (user_address, text, operator_address) {
 }
 
 // ** add Data Feed to Oracle object ** //
-async function addDataFeed (oracles, oracle, feed_name) {
-	if (!oracles[oracle]) {
-		oracles[oracle] = {}
-		oracles[oracle][feed_name] = { oracle: oracle, feed_name: feed_name }
-			/// { oracle: oracle, feed_name: feed_name, curve_aas: [curve_aa] } 
+async function addDataFeed (oracles, oracle, feed_name, curve_aa) {
+	let oracle_data_feed = oracle + ' - ' + feed_name
+	if ( !oracles[oracle_data_feed] )  oracles[oracle_data_feed] = {
+		oracle: oracle, feed_name: feed_name, curve_aas: [curve_aa]
 	}
-	else if (!oracles[oracle][feed_name]) oracles[oracle][feed_name] = 
-		{ oracle: oracle, feed_name: feed_name }
-		///{ oracle: oracle, feed_name: feed_name, curve_aas: [curve_aa] }
-	/*	
 	else {
-		let new_aa = true
-		for ( let aa of oracles[oracle][feed_name].curve_aas ) {
-			if ( aa === curve_aa) {
-				new_aa = false
-				break;
-			}
-		}
-		if (new_aa) oracles[oracle][feed_name].curve_aas.push(curve_aa)
+		let oracle_data_feed_aas = oracles[oracle_data_feed].curve_aas
+		if ( !oracle_data_feed_aas.includes(oracle_data_feed) ) 
+			oracles[oracle_data_feed].curve_aas.push(curve_aa)
 	}
-	*/
 }
 
 // ** add Oracle Data Feed to Oracles object ** //

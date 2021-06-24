@@ -15,6 +15,7 @@ let operator_address = null;
 let paired_bots = [];
 let oracles = {};
 let curve_aas = {};
+let curve_aas_to_estimate = [];
 
 // ** add new Curve AA ** //
 async function addNewCurveAA (curve_aa) {
@@ -43,6 +44,14 @@ async function addNewCurveAA (curve_aa) {
 	return true;
 }
 
+// ** add new Curve AAs ** //
+async function addNewCurveAAs () {
+	const curve_aas_array = await dag.getAAsByBaseAAs(conf.base_aas);  // get curve AAs
+	for await (let aa of curve_aas_array) {
+		if (!curve_aas[aa.address]) await addNewCurveAA(aa.address)
+	}
+}
+
 // ** when headless wallet is ready, start network and set interval for data feeds check ** //
 eventBus.once('headless_wallet_ready', async () => {
 	// ** user pairs his device with the bot ** //
@@ -50,37 +59,30 @@ eventBus.once('headless_wallet_ready', async () => {
 		paired_bots.push(from_address) // store user address in an array of paired_bots
 		utils.paired(from_address) // send a greeting messages & check config params
 	});
-	// ** user sends message to the bot ** //
+	// ** respond to the message sent by a user to the bot ** //
 	eventBus.on('text', (from_address, text) => { 
-		bot_utils.respond(from_address, text, operator_address) // respond to user message
+		bot_utils.respond(from_address, text, operator_address) 
 	});
 	
 	await operator.start(); // start the built-in wallet
 	network.start();  	// start network
 	operator_address = operator.getAddress();  // get operator's address
-	
 	console.error('************ START WATCHING ************')
 	console.error('*** Operator: ', operator_address, ' ***')
-	
-	// ** check for mandatory config params ** //
-	if (!conf.base_aas || !conf.factory_aas) {
+	if (!conf.base_aas || !conf.factory_aas) {  // check for mandatory config params
 		console.error('Error: missing mandatory parameters from the config. Process terminated.')
 		process.exit(1)
 	}
 
 	// ** get all Curve AAs and start following them and all associated AAs ** //
-	const curve_aas_array = await dag.getAAsByBaseAAs(conf.base_aas);  // get curve AAs
-	for await (let aa of curve_aas_array) {
-		await addNewCurveAA(aa.address)
-	}
-	
+	await addNewCurveAAs();
 	// ** get all stable AAs and start following them ** //
 	for await (let factory_aa of conf.factory_aas) {
 		let factory_aa_vars = await dag.readAAStateVars(factory_aa, "stable_aa_");
 		let stable_aas = Object.keys(factory_aa_vars);
 		for await (let stable_aa of stable_aas) {
 			stable_aa = stable_aa.replace('stable_aa_','');
-			await aa_state.followAA(stable_aa);  // follow DE AA	
+			await aa_state.followAA(stable_aa);  // follow Stable AA	
 		}		
 	}
 
@@ -88,7 +90,6 @@ eventBus.once('headless_wallet_ready', async () => {
 
 	let interval = 60 * 10 //  set interval, e.g. to 10 minutes
 	if (conf.interval) interval = conf.interval
-	///setInterval( () => estimateAndTrigger(), interval * 1000);
 	setInterval( () => checkDataFeeds(), interval * 1000);
 })
 
@@ -96,47 +97,42 @@ eventBus.once('headless_wallet_ready', async () => {
 async function checkDataFeeds() {
 	console.error('------------>>>>')
 	// ** check for new AAs ** //
-	const curve_aas_array = await dag.getAAsByBaseAAs(conf.base_aas);  // get curve AAs
-	for await (let aa of curve_aas_array) {
-		if (!curve_aas[aa.address]) await addNewCurveAA(aa.address)
-	}
+	await addNewCurveAAs();
 	// ** update data feeds ** //
-	let updated_data_feed = false
-	let oracles_array = Object.keys(oracles);
-	for await (let oracle of oracles_array) {
-		let data_feeds_array = Object.keys(oracles[oracle]);
-		for await (let data_feed of data_feeds_array) {
-			if (conf.bLight) {
-				let updated = await light_data_feeds.updateDataFeed(oracle, data_feed, true);
-				if (updated) {
-					console.error('INFO: updated Data Feed: ',  data_feed, ' from Oracle: ', oracle)
-					updated_data_feed = true 
-					/// ??? it could be better to call the estimateAndTrigger function 
-					/// here for AAs affected by the change in the Data Feed
-					/// rather than estimating all AAs
-				}
+	curve_aas_to_estimate = []
+	let affected_aas = []
+	let oracle_obj_keys = Object.keys(oracles);
+	for await (let oracle_obj_key of oracle_obj_keys) {
+		let oracle = oracles[oracle_obj_key].oracle
+		let data_feed = oracles[oracle_obj_key].feed_name
+		if (conf.bLight) {
+			let updated = await light_data_feeds.updateDataFeed(oracle, data_feed, true);
+			if (updated) {
+				console.error('INFO: updated Data Feed: ',  data_feed, ' from Oracle: ', oracle)
+				affected_aas.push( ...oracles[oracle_obj_key].curve_aas )
 			}
 		}
 	}
-	if (updated_data_feed) eventBus.emit('data_feeds_updated');
+	if (affected_aas.length > 0) {
+		curve_aas_to_estimate = Array.from(new Set(affected_aas))
+		eventBus.emit('data_feeds_updated');
+	}
 	else console.error('INFO: no change in Data Feeds') 
 }
 
 // ** estiamte and trigger ** //
 async function estimateAndTrigger() {
-	console.error('estimate and trigger function')
+	console.error('estimate and trigger function, affected AAs: ', curve_aas_to_estimate )
 	const unlock = await aa_state.lock();
 	// ** get upcomming state balances and state vars for all aas ** //
 	let upcomingBalances = await aa_state.getUpcomingBalances();
 	let upcomingStateVars = await aa_state.getUpcomingStateVars();
 	
 	// ** for each Curve AA estimate and trigger DE ** //
-	let curve_aas_array = Object.keys(curve_aas);
-	for await (let curve_aa of curve_aas_array) {
-		let de_aa = curve_aas[curve_aa].de_aa
-		// ** construct dummy trigger unit ** //
-		let objUnit = await utils.constructDummyObject( operator_address, de_aa)
+	for await (let curve_aa of curve_aas_to_estimate) {		
 		// ** estimate DE response ** //
+		let de_aa = curve_aas[curve_aa].de_aa
+		let objUnit = await utils.constructDummyObject( operator_address, de_aa)
 		let responses = await aa_composer.estimatePrimaryAATrigger(objUnit, de_aa, 
 			upcomingStateVars, upcomingBalances);
 		// ** process estimated response ** //
@@ -144,10 +140,11 @@ async function estimateAndTrigger() {
 		else if (responses[0].response && responses[0].response.responseVars && responses[0].response.responseVars.message) {
 			let response = responses[0].response.responseVars.message;
 			if (response === "DE fixed the peg"  || response === "DE partially fixed the peg") {
-				console.error('******** about to trigger DE: ', de_aa, ' for Curve AA: ', curve_aa)
 				await dag.sendAARequest(de_aa, {act: 1}); // trigger DE
+				console.error('*************************')
 				let message = 'INFO: DE Triggered for AA:' + curve_aa
 				await utils.sendMessage(message, paired_bots);
+				console.error('*************************')
 			}
 			else console.error('INFO: ', response, ' DE: ', de_aa, ' for Curve AA: ', curve_aa)
 		}
