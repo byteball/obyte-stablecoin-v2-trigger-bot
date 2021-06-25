@@ -60,7 +60,9 @@ eventBus.once('headless_wallet_ready', async () => {
 
 	// ** get all Curve AAs and start following them and all associated AAs ** //
 	const curve_aas_array = await dag.getAAsByBaseAAs(conf.base_aas);  // get Curve AAs
-	for (let aa of curve_aas_array) { await addNewCurveAA(aa.address) }
+	for (let aa of curve_aas_array) { 
+		await addNewCurveAA(aa.address) 
+	}
 
 	// ** get all stable AAs and start following them ** //
 	for (let factory_aa of conf.factory_aas) {
@@ -88,18 +90,23 @@ eventBus.once('headless_wallet_ready', async () => {
 async function checkDataFeeds() {
 	console.error('------------>>>>')
 	// ** update data feeds ** //
-	curve_aas_to_estimate = []
+	curve_aas_to_estimate.length = 0
 	let affected_aas = []
 	let oracle_obj_keys = Object.keys(oracles);
 	for await (let oracle_obj_key of oracle_obj_keys) {
 		let oracle = oracles[oracle_obj_key].oracle
 		let data_feed = oracles[oracle_obj_key].feed_name
 		if (conf.bLight) {
-			let updated = await light_data_feeds.updateDataFeed(oracle, data_feed, true);
-			if (updated) {
-				console.error('INFO: updated Data Feed: ',  data_feed, ' from Oracle: ', oracle)
-				affected_aas.push( ...oracles[oracle_obj_key].curve_aas )
-			}
+			try {
+				let updated = await light_data_feeds.updateDataFeed(oracle, data_feed, true);
+				if (updated) {
+					console.error('INFO: updated Data Feed: ',  data_feed, ' from Oracle: ', oracle)
+					affected_aas.push( ...oracles[oracle_obj_key].curve_aas )
+				}
+			} catch (err) { 
+				console.error('Error getting Data Feed: ', data_feed, ' from oracle: ', oracle)
+				console.error(err) 
+			}			
 		}
 	}
 	if (affected_aas.length > 0) {
@@ -130,7 +137,7 @@ async function estimateAndTrigger() {
 			if (response === "DE fixed the peg"  || response === "DE partially fixed the peg") {
 				await dag.sendAARequest(de_aa, {act: 1}); // trigger DE
 				console.error('*************************')
-				let message = 'INFO: DE Triggered for AA: ' + curve_aa
+				let message = 'INFO: DE Triggered for AA: ' + curve_aa + ' expected response: ' + response
 				await utils.sendMessage(message, paired_bots);
 				console.error('*************************')
 			}
