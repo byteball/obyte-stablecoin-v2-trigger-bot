@@ -11,7 +11,7 @@ exports.payout_address = ''; // where Bytes can be moved manually.
 exports.admin_email = '';
 exports.from_email = '';
 exports.permanent_pairing_secret = '*'; // * allows to pair with any code
-exports.control_addresses = [''];  // if required, add to local conf.json file
+exports.control_addresses = [''];  // if required, add to local conf.json file; device address
 //
 exports.base_aas = ['3DGWRKKWWSC6SV4ZQDWEHYFRYB4TGPKX', 'CD5DNSVS6ENG5UYILRPJPHAB3YXKA63W']; 
 exports.factory_aas = ['CX56T625MQDCRCQTJGYZYYWUAMCEZT2Q','YSVSAICPH5XOZPZL5UVH56MVHQKMXZCM'];

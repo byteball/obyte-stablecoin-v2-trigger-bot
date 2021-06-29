@@ -17,7 +17,7 @@ node start.js
 ```
 Pair witht the bot to monitor bot activity:
 ```
-====== pairing code: AgWulQt9nDbc9K0CafvWd5Vkw6XTy4MJk/KQvKUIB26h@obyte.org/bb#*
+====== pairing code: Ax026NZHOvgrIVo7/LPbrkoMOpTxN3Sh0glsciA/6FZk@obyte.org/bb#*
 ```
 Copy this pairing code to your O<sub>byte</sub> wallet: Chat tab, Add a new device, Accept invitation, paste the code, ready to chat and receive notification of DE being triggered.
 
