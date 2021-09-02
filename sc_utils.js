@@ -3,7 +3,7 @@ const device = require('ocore/device.js');
 const conf = require('ocore/conf');
 
 // ** send message to all paired bots ** //
-async function sendMessage (message, paired_bots) {
+function sendMessage (message, paired_bots) {
 	console.error(message);
 	for (let user_address of paired_bots) {
 		device.sendMessageToDevice(user_address, 'text', message);
@@ -51,7 +51,7 @@ function respond (user_address, text, operator_address) {
 }
 
 // ** add Data Feed to Oracle object ** //
-async function addDataFeed (oracles, oracle, feed_name, curve_aa) {
+function addDataFeed (oracles, oracle, feed_name, curve_aa) {
 	let oracle_data_feed = oracle + ' - ' + feed_name
 	if ( !oracles[oracle_data_feed] )  oracles[oracle_data_feed] = {
 		oracle: oracle, feed_name: feed_name, curve_aas: [curve_aa]
@@ -64,17 +64,17 @@ async function addDataFeed (oracles, oracle, feed_name, curve_aa) {
 }
 
 // ** add Oracle Data Feed to Oracles object ** //
-async function addOracleDataFeed (oracles, params, curve_aa) {
-	if (params.oracle1 && params.feed_name1) await addDataFeed(oracles, params.oracle1, 
+function addOracleDataFeed (oracles, params, curve_aa) {
+	if (params.oracle1 && params.feed_name1) addDataFeed(oracles, params.oracle1, 
 		params.feed_name1, curve_aa)
-	if (params.oracle2 && params.feed_name2) await addDataFeed(oracles, params.oracle2, 
+	if (params.oracle2 && params.feed_name2) addDataFeed(oracles, params.oracle2, 
 		params.feed_name2, curve_aa)
-	if (params.oracle3 && params.feed_name3) await addDataFeed(oracles, params.oracle3, 
+	if (params.oracle3 && params.feed_name3) addDataFeed(oracles, params.oracle3, 
 		params.feed_name3, curve_aa)
 }
 
 // ** constructDummyObject ** //
-async function constructDummyObject (operator, de_aa) {
+function constructDummyObject (operator, de_aa) {
 	let objUnit = {
 		unit: 'dummy_trigger_unit',
 		authors: [{ address: operator }],

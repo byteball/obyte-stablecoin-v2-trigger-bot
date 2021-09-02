@@ -35,7 +35,7 @@ async function addNewCurveAA (curve_aa) {
 	await aa_state.followAA(fund_aa); 
 	await aa_state.followAA(de_aa);  
 	//** add AAs Data Feeds to Oracles object ** //
-	await utils.addOracleDataFeed(oracles, params, curve_aa)
+	utils.addOracleDataFeed(oracles, params, curve_aa)
 	return true;
 }
 
@@ -92,16 +92,14 @@ async function checkDataFeeds() {
 	// ** update data feeds ** //
 	curve_aas_to_estimate.length = 0
 	let affected_aas = []
-	let oracle_obj_keys = Object.keys(oracles);
-	for await (let oracle_obj_key of oracle_obj_keys) {
-		let oracle = oracles[oracle_obj_key].oracle
-		let data_feed = oracles[oracle_obj_key].feed_name
+	for (let oracle_obj_key in oracles) {
+		let { oracle, data_feed, curve_aas } = oracles[oracle_obj_key];
 		if (conf.bLight) {
 			try {
 				let updated = await light_data_feeds.updateDataFeed(oracle, data_feed, true);
 				if (updated) {
 					console.error('INFO: updated Data Feed: ',  data_feed, ' from Oracle: ', oracle)
-					affected_aas.push( ...oracles[oracle_obj_key].curve_aas )
+					affected_aas.push( ...curve_aas )
 				}
 			} catch (err) { 
 				console.error('Error getting Data Feed: ', data_feed, ' from oracle: ', oracle)
@@ -120,14 +118,14 @@ async function checkDataFeeds() {
 async function estimateAndTrigger() {
 	const unlock = await aa_state.lock();
 	// ** get upcomming state balances and state vars for all aas ** //
-	let upcomingBalances = await aa_state.getUpcomingBalances();
-	let upcomingStateVars = await aa_state.getUpcomingStateVars();
+	let upcomingBalances = aa_state.getUpcomingBalances();
+	let upcomingStateVars = aa_state.getUpcomingStateVars();
 
 	// ** for each Curve AA estimate and trigger DE ** //
 	for (let curve_aa of curve_aas_to_estimate) {		
 		// ** estimate DE response ** //
 		let de_aa = curve_aas[curve_aa].de_aa
-		let objUnit = await utils.constructDummyObject( operator_address, de_aa)
+		let objUnit = utils.constructDummyObject( operator_address, de_aa)
 		let responses = await aa_composer.estimatePrimaryAATrigger(objUnit, de_aa, 
 			upcomingStateVars, upcomingBalances);
 		// ** process estimated response ** //
@@ -138,7 +136,7 @@ async function estimateAndTrigger() {
 				await dag.sendAARequest(de_aa, {act: 1}); // trigger DE
 				console.error('*************************')
 				let message = 'INFO: DE Triggered for AA: ' + curve_aa + ' expected response: ' + response
-				await utils.sendMessage(message, paired_bots);
+				utils.sendMessage(message, paired_bots);
 				console.error('*************************')
 			}
 			else console.error('INFO: ', response, ' DE: ', de_aa, ' for Curve AA: ', curve_aa)
