@@ -15,7 +15,6 @@ let operator_address = null;
 let paired_bots = [];
 let oracles = {};
 let curve_aas = {};
-let curve_aas_to_estimate = [];
 
 // ** add new Curve AA ** //
 async function addNewCurveAA (curve_aa) {
@@ -90,7 +89,6 @@ eventBus.once('headless_wallet_ready', async () => {
 async function checkDataFeeds() {
 	console.error('------------>>>>')
 	// ** update data feeds ** //
-	curve_aas_to_estimate.length = 0
 	let affected_aas = []
 	for (let oracle_obj_key in oracles) {
 		let { oracle, data_feed, curve_aas } = oracles[oracle_obj_key];
@@ -108,14 +106,14 @@ async function checkDataFeeds() {
 		}
 	}
 	if (affected_aas.length > 0) {
-		curve_aas_to_estimate = Array.from(new Set(affected_aas))  // remove duplicates
-		await estimateAndTrigger();  // estimate and trigger
+		const curve_aas_to_estimate = Array.from(new Set(affected_aas))  // remove duplicates
+		await estimateAndTrigger(curve_aas_to_estimate);  // estimate and trigger
 	}
 	else console.error('INFO: no change in Data Feeds') 
 }
 
 // ** estiamte and trigger ** //
-async function estimateAndTrigger() {
+async function estimateAndTrigger(curve_aas_to_estimate) {
 	const unlock = await aa_state.lock();
 	// ** get upcomming state balances and state vars for all aas ** //
 	let upcomingBalances = aa_state.getUpcomingBalances();
