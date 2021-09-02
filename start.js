@@ -91,16 +91,16 @@ async function checkDataFeeds() {
 	// ** update data feeds ** //
 	let affected_aas = []
 	for (let oracle_obj_key in oracles) {
-		let { oracle, data_feed, curve_aas } = oracles[oracle_obj_key];
+		let { oracle, feed_name, curve_aas } = oracles[oracle_obj_key];
 		if (conf.bLight) {
 			try {
-				let updated = await light_data_feeds.updateDataFeed(oracle, data_feed, true);
+				let updated = await light_data_feeds.updateDataFeed(oracle, feed_name, true);
 				if (updated) {
-					console.error('INFO: updated Data Feed: ',  data_feed, ' from Oracle: ', oracle)
+					console.error('INFO: updated Data Feed: ',  feed_name, ' from Oracle: ', oracle)
 					affected_aas.push( ...curve_aas )
 				}
 			} catch (err) { 
-				console.error('Error getting Data Feed: ', data_feed, ' from oracle: ', oracle)
+				console.error('Error getting Data Feed: ', feed_name, ' from oracle: ', oracle)
 				console.error(err) 
 			}			
 		}
