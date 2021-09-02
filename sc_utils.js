@@ -74,7 +74,7 @@ function addOracleDataFeed (oracles, params, curve_aa) {
 }
 
 // ** constructDummyObject ** //
-function constructDummyObject (operator, de_aa) {
+function constructDummyObject (operator, de_aa, payload) {
 	let objUnit = {
 		unit: 'dummy_trigger_unit',
 		authors: [{ address: operator }],
@@ -82,7 +82,7 @@ function constructDummyObject (operator, de_aa) {
 			{	app: 'payment',
 				payload: { outputs: [{ address: de_aa, amount: 1e4 }] } 	},
 			{	app: 'data',
-				payload: { act: 1 } 	}
+				payload	}
 		]
 	}
 	return objUnit;
