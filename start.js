@@ -83,6 +83,7 @@ eventBus.once('headless_wallet_ready', async () => {
 	let interval = 60 * 5 //  set interval, e.g. to 5 minutes
 	if (conf.interval) interval = conf.interval
 	setInterval( () => checkDataFeeds(), interval * 1000);
+	checkDataFeeds();
 })
 
 // ** check Data Feeds and call Estiamte & Trigger function if there is change ** //
