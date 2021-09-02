@@ -120,7 +120,7 @@ async function estimateAndTrigger(curve_aas_to_estimate) {
 	let upcomingBalances = aa_state.getUpcomingBalances();
 	let upcomingStateVars = aa_state.getUpcomingStateVars();
 
-	async function estimateAndSendAARequest(de_aa, dataPayload, positiveResponseRegexp) {
+	async function estimateAndSendAARequest(curve_aa, de_aa, dataPayload, positiveResponseRegexp) {
 		let objUnit = utils.constructDummyObject(operator_address, de_aa, dataPayload);
 		let responses = await aa_composer.estimatePrimaryAATrigger(objUnit, de_aa, upcomingStateVars, upcomingBalances);
 		// ** process estimated response ** //
@@ -135,7 +135,8 @@ async function estimateAndTrigger(curve_aas_to_estimate) {
 				utils.sendMessage(message, paired_bots);
 				console.error('*************************')
 			}
-			else console.error('INFO: ', responseMessage, ' DE: ', de_aa, ' for Curve AA: ', curve_aa)
+			else
+				console.error('INFO: ', responseMessage, ' DE: ', de_aa, ' for Curve AA: ', curve_aa)
 		}
 		else
 			console.error(`--- estimated responses to simulated DE AA request`, JSON.stringify(responses, null, 2));
@@ -145,8 +146,8 @@ async function estimateAndTrigger(curve_aas_to_estimate) {
 	for (let curve_aa of curve_aas_to_estimate) {		
 		// ** estimate DE response ** //
 		let de_aa = curve_aas[curve_aa].de_aa
-		await estimateAndSendAARequest(de_aa, { act: 1 }, /fixed the peg/);
-		await estimateAndSendAARequest(de_aa, { sweep_capacitor: 1 }, /Expecting to make a profit of/);
+		await estimateAndSendAARequest(curve_aa, de_aa, { act: 1 }, /fixed the peg/);
+		await estimateAndSendAARequest(curve_aa, de_aa, { sweep_capacitor: 1 }, /Expecting to make a profit of/);
 	}
 	unlock();
 }
