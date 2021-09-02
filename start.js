@@ -80,7 +80,7 @@ eventBus.once('headless_wallet_ready', async () => {
 		})
 	}
 
-	let interval = 60 * 10 //  set interval, e.g. to 10 minutes
+	let interval = 60 * 5 //  set interval, e.g. to 5 minutes
 	if (conf.interval) interval = conf.interval
 	setInterval( () => checkDataFeeds(), interval * 1000);
 })
