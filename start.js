@@ -80,6 +80,14 @@ eventBus.once('headless_wallet_ready', async () => {
 		})
 	}
 
+	eventBus.on("aa_request_applied", objAARequest => {
+		const { aa_address } = objAARequest;
+		if (curve_aas[aa_address]) {
+			console.log(`a request to curve ${aa_address}`, objAARequest);
+			estimateAndTrigger([aa_address]);
+		}
+	});
+
 	let interval = 60 * 5 //  set interval, e.g. to 5 minutes
 	if (conf.interval) interval = conf.interval
 	setInterval( () => checkDataFeeds(), interval * 1000);
