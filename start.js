@@ -88,6 +88,23 @@ eventBus.once('headless_wallet_ready', async () => {
 		}
 	});
 
+	eventBus.on("updated_oracles", updatedOracles => {
+		console.error('updated oracles', updatedOracles);
+		let affected_aas = [];
+		for (let { address, feed_name } of updatedOracles) {
+			const oracle = oracles[address + ' - ' + feed_name];
+			const { curve_aas } = oracle;
+			affected_aas.push(...curve_aas);
+		}
+		if (affected_aas.length > 0) {
+			const curve_aas_to_estimate = Array.from(new Set(affected_aas))  // remove duplicates
+			console.error('affected curves', curve_aas_to_estimate);
+			estimateAndTrigger(curve_aas_to_estimate);  // estimate and trigger
+		}
+		else
+			console.error('no curves affected by new oracle values');
+	});
+
 	let interval = 60 * 5 //  set interval, e.g. to 5 minutes
 	if (conf.interval) interval = conf.interval
 	setInterval( () => checkDataFeeds(), interval * 1000);
